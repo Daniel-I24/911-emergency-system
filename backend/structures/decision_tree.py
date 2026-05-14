@@ -18,10 +18,10 @@ class IncidentDecisionTree:
             return DecisionResult(
                 recommended_unit_types=["ambulance", "police"],
                 operator_script=[
-                    "Confirm patient is conscious and breathing.",
-                    "Ask for exact location and landmark.",
-                    "Ask for number of affected people.",
-                    "Provide basic first-aid instructions if safe.",
+                    "Confirma si el paciente está consciente y respirando.",
+                    "Solicita la ubicación exacta y un punto de referencia.",
+                    "Pregunta cuántas personas están afectadas.",
+                    "Da instrucciones básicas de primeros auxilios si es seguro.",
                 ],
             )
 
@@ -29,10 +29,10 @@ class IncidentDecisionTree:
             return DecisionResult(
                 recommended_unit_types=["fire_truck", "ambulance", "police"],
                 operator_script=[
-                    "Confirm if there are people trapped.",
-                    "Ask if the fire involves gas/chemicals.",
-                    "Advise evacuation if safe.",
-                    "Request caller to stay at a safe distance.",
+                    "Confirma si hay personas atrapadas.",
+                    "Pregunta si el incendio involucra gas o químicos.",
+                    "Recomienda evacuar si es seguro hacerlo.",
+                    "Pide al llamante que se mantenga a una distancia segura.",
                 ],
             )
 
@@ -40,10 +40,10 @@ class IncidentDecisionTree:
             return DecisionResult(
                 recommended_unit_types=["ambulance", "police"],
                 operator_script=[
-                    "Confirm number of vehicles involved.",
-                    "Ask if anyone is injured or unconscious.",
-                    "Ask if the road is blocked.",
-                    "Advise caller to turn on hazard lights if safe.",
+                    "Confirma cuántos vehículos están involucrados.",
+                    "Pregunta si hay heridos o personas inconscientes.",
+                    "Pregunta si la vía está bloqueada.",
+                    "Indica encender las luces de emergencia si es seguro.",
                 ],
             )
 
