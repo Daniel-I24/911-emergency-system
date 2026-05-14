@@ -5,18 +5,48 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class Edge:
+    """
+    Representa una arista o conexión unidireccional entre dos nodos en un grafo.
+    
+    Attributes:
+        to_node (str): El identificador del nodo de destino.
+        weight (int): El peso o costo de recorrer esta arista.
+    """
     to_node: str
     weight: int
 
 
 class WeightedGraph:
+    """
+    Implementación de un grafo ponderado utilizando listas de adyacencia.
+    """
     def __init__(self) -> None:
+        """
+        Inicializa un grafo ponderado vacío.
+        """
         self._adjacency: dict[str, list[Edge]] = {}
 
     def add_node(self, node: str) -> None:
+        """
+        Agrega un nodo al grafo si no existe.
+        
+        Args:
+            node (str): El identificador del nodo a agregar.
+        """
         self._adjacency.setdefault(node, [])
 
     def add_undirected_edge(self, *, a: str, b: str, weight: int) -> None:
+        """
+        Agrega una arista no dirigida (bidireccional) entre dos nodos con un peso específico.
+        
+        Args:
+            a (str): El primer nodo.
+            b (str): El segundo nodo.
+            weight (int): El peso de la arista (debe ser no negativo).
+            
+        Raises:
+            ValueError: Si el peso es negativo.
+        """
         if weight < 0:
             raise ValueError("Edge weight must be non-negative")
         self.add_node(a)
@@ -25,9 +55,28 @@ class WeightedGraph:
         self._adjacency[b].append(Edge(to_node=a, weight=weight))
 
     def nodes(self) -> list[str]:
+        """
+        Devuelve una lista con todos los nodos presentes en el grafo.
+        
+        Returns:
+            list[str]: Lista de identificadores de nodos.
+        """
         return list(self._adjacency.keys())
 
     def dijkstra_distances(self, *, source: str) -> dict[str, int]:
+        """
+        Calcula las distancias más cortas desde un nodo de origen a todos los demás nodos
+        en el grafo utilizando el algoritmo de Dijkstra.
+        
+        Args:
+            source (str): El nodo de origen desde donde calcular las distancias.
+            
+        Returns:
+            dict[str, int]: Un diccionario donde la clave es el nodo y el valor es la distancia más corta.
+            
+        Raises:
+            ValueError: Si el nodo de origen no existe en el grafo.
+        """
         if source not in self._adjacency:
             raise ValueError("Unknown source node")
 

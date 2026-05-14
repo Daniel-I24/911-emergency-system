@@ -21,6 +21,14 @@ class EmergencyServiceError(ValueError):
 
 @dataclass(frozen=True)
 class ServiceResult:
+    """
+    Representa el resultado estándar de una operación del servicio.
+    
+    Attributes:
+        success (bool): Indica si la operación fue exitosa.
+        data (Any): Los datos resultantes de la operación (si aplica).
+        message (str): Mensaje descriptivo sobre el resultado o el error.
+    """
     success: bool
     data: Any
     message: str
@@ -31,6 +39,17 @@ UndoKind = Literal["create_call", "dispatch", "cancel_call"]
 
 @dataclass(frozen=True)
 class UndoAction:
+    """
+    Representa una acción previa que puede ser deshecha por el sistema.
+    
+    Attributes:
+        kind (UndoKind): El tipo de acción (crear llamada, despachar, cancelar).
+        call_id (int): El ID de la llamada involucrada.
+        unit_id (Optional[str]): El ID de la unidad involucrada (para despacho).
+        unit_prev_location (Optional[str]): Ubicación previa de la unidad.
+        unit_prev_available (Optional[bool]): Estado previo de disponibilidad de la unidad.
+        call_snapshot (Optional[dict]): Copia de los datos de la llamada antes de ser modificada o eliminada.
+    """
     kind: UndoKind
     call_id: int
     unit_id: Optional[str] = None
@@ -40,6 +59,10 @@ class UndoAction:
 
 
 class EmergencyService:
+    """
+    Servicio principal que gestiona la lógica de negocio del sistema de emergencias 911.
+    Coordina llamadas, unidades, rutas, prioridades y el historial de acciones.
+    """
     def __init__(self) -> None:
         self._calls: dict[int, dict[str, Any]] = {}
         self._pending: PriorityQueue = PriorityQueue()
@@ -60,12 +83,15 @@ class EmergencyService:
         self._seed_demo_city()
 
     def list_locations(self) -> ServiceResult:
+        """Devuelve todas las ubicaciones registradas en el mapa (grafo)."""
         return ServiceResult(success=True, data={"locations": self._graph.nodes()}, message="OK")
 
     def list_units(self) -> ServiceResult:
+        """Devuelve la lista de todas las unidades de respuesta y su estado."""
         return ServiceResult(success=True, data=list(self._units), message="OK")
 
     def list_pending_calls(self) -> ServiceResult:
+        """Devuelve una lista de las llamadas pendientes ordenadas por prioridad y secuencia."""
         call_ids = self._pending.to_list()
         calls = [self._calls[cid] for cid in call_ids if cid in self._calls]
         return ServiceResult(success=True, data=calls, message="OK")
@@ -91,6 +117,9 @@ class EmergencyService:
         return ServiceResult(success=True, data={"count": len(cleared)}, message="OK")
 
     def get_distance(self, *, source: str, target: str) -> ServiceResult:
+        """
+        Calcula la distancia más corta entre dos ubicaciones utilizando el algoritmo de Dijkstra.
+        """
         if source not in self._graph.nodes() or target not in self._graph.nodes():
             raise EmergencyServiceError("Unknown location")
         distances = self._graph.dijkstra_distances(source=source)
@@ -118,6 +147,9 @@ class EmergencyService:
         location: str,
         description: str,
     ) -> ServiceResult:
+        """
+        Registra una nueva llamada de emergencia en el sistema, agregándola a la cola de pendientes.
+        """
         if location not in self._graph.nodes():
             raise EmergencyServiceError("Unknown location")
         if not description.strip():
@@ -190,6 +222,10 @@ class EmergencyService:
         return ServiceResult(success=True, data=unit, message="Unit updated")
 
     def dispatch_next(self) -> ServiceResult:
+        """
+        Asigna la unidad de respuesta más adecuada a la llamada de emergencia con mayor prioridad.
+        Calcula la ruta más corta y utiliza un sistema de rotación en caso de empate.
+        """
         if self._pending.is_empty():
             raise EmergencyServiceError("No pending calls")
 
@@ -263,6 +299,10 @@ class EmergencyService:
         return ServiceResult(success=True, data={"call": call, "unit": chosen, "dispatch": record}, message="Dispatched")
 
     def undo_last(self) -> ServiceResult:
+        """
+        Deshace la última acción destructiva o que altera el estado general (creación de llamada, despacho o cancelación),
+        utilizando la pila de acciones (Stack LIFO).
+        """
         if self._undo.is_empty():
             raise EmergencyServiceError("Nothing to undo")
 
