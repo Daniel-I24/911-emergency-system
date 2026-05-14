@@ -19,12 +19,22 @@ python app.py
 
 ## Features
 
-- Create emergency calls and prioritize them (priority queue)
-- Dispatch the next call to the nearest available unit (Dijkstra)
-- Operator guide by incident type (decision tree)
-- Dispatch history stored in a linked list
-- Unit selection rotation for tie-breaks (circular array)
-- Undo last action (stack).
+-Priority Queue for handling emergency calls by severity
+-Dijkstra’s Algorithm to find the nearest available response unit
+-Decision Tree to guide operators according to incident type
+-Singly Linked List for dispatch history
+-Circular Array for fair unit selection rotation (tie-breaking)
+-Stack for Undo last action
+-Queue for real-time event logging
+-Complete Tkinter GUI desktop application
+
+
+## Tech Stack
+
+Python 3
+Tkinter – Graphical User Interface
+Custom Data Structures (no external heavy libraries)
+
 
 ## Structure
 
@@ -48,3 +58,4 @@ emergency-system/
   requirements.txt
   README.md
 ```
+
