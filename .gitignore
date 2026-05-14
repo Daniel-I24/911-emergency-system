@@ -19,3 +19,10 @@ Thumbs.db
 
 dist/
 build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
