@@ -24,7 +24,7 @@ python app.py
 - Operator guide by incident type (decision tree)
 - Dispatch history stored in a linked list
 - Unit selection rotation for tie-breaks (circular array)
-- Undo last action (stack)
+- Undo last action (stack).
 
 ## Structure
 
