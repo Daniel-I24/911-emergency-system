@@ -22,6 +22,11 @@ class Emergency911App:
         self.distance_source_var = tk.StringVar(value="")
         self.distance_target_var = tk.StringVar(value="")
 
+        self.unit_id_var = tk.StringVar(value="")
+        self.unit_type_var = tk.StringVar(value="ambulance")
+        self.unit_location_var = tk.StringVar(value="")
+        self.unit_available_var = tk.BooleanVar(value=True)
+
         self._build_layout()
         self.refresh_all()
 
@@ -53,6 +58,7 @@ class Emergency911App:
         body.columnconfigure(0, weight=1)
         body.columnconfigure(1, weight=1)
         body.rowconfigure(1, weight=1)
+        body.rowconfigure(2, weight=0)
 
         left_top = ttk.Labelframe(body, text="Create Emergency Call", padding=12)
         left_top.grid(row=0, column=0, sticky="nsew", padx=(0, 8), pady=(0, 8))
@@ -97,6 +103,11 @@ class Emergency911App:
         left_bottom.rowconfigure(0, weight=1)
         left_bottom.columnconfigure(0, weight=1)
 
+        call_actions = ttk.Frame(left_bottom)
+        call_actions.grid(row=1, column=0, sticky="ew", pady=(10, 0))
+        ttk.Button(call_actions, text="Cancel selected", command=self.cancel_selected_call).grid(row=0, column=0, padx=(0, 8))
+        ttk.Button(call_actions, text="Copy details", command=self.copy_selected_call).grid(row=0, column=1)
+
         self.calls_tree = ttk.Treeview(
             left_bottom,
             columns=("call_id", "type", "priority", "location", "created_at", "status"),
@@ -120,7 +131,7 @@ class Emergency911App:
 
         right_bottom = ttk.Labelframe(body, text="Units and Dispatch History", padding=12)
         right_bottom.grid(row=1, column=1, sticky="nsew", padx=(8, 0))
-        right_bottom.rowconfigure(1, weight=1)
+        right_bottom.rowconfigure(2, weight=1)
         right_bottom.columnconfigure(0, weight=1)
 
         units_frame = ttk.Frame(right_bottom)
@@ -141,8 +152,34 @@ class Emergency911App:
         units_scroll.grid(row=0, column=1, sticky="ns")
         self.units_tree.configure(yscrollcommand=units_scroll.set)
 
+        unit_form = ttk.Frame(right_bottom)
+        unit_form.grid(row=1, column=0, sticky="ew", pady=(10, 0))
+        unit_form.columnconfigure(1, weight=1)
+        unit_form.columnconfigure(3, weight=1)
+
+        ttk.Label(unit_form, text="Unit ID").grid(row=0, column=0, sticky="w")
+        ttk.Entry(unit_form, textvariable=self.unit_id_var, width=12).grid(row=0, column=1, sticky="ew", padx=(8, 12))
+
+        ttk.Label(unit_form, text="Type").grid(row=0, column=2, sticky="w")
+        unit_type_cb = ttk.Combobox(unit_form, textvariable=self.unit_type_var, state="readonly", width=14)
+        unit_type_cb["values"] = ("ambulance", "fire_truck", "police")
+        unit_type_cb.grid(row=0, column=3, sticky="ew", padx=(8, 0))
+
+        ttk.Label(unit_form, text="Location").grid(row=1, column=0, sticky="w", pady=(10, 0))
+        self.unit_location_cb = ttk.Combobox(unit_form, textvariable=self.unit_location_var, state="readonly")
+        self.unit_location_cb.grid(row=1, column=1, sticky="ew", padx=(8, 12), pady=(10, 0))
+
+        ttk.Checkbutton(unit_form, text="Available", variable=self.unit_available_var).grid(row=1, column=2, sticky="w", pady=(10, 0))
+        ttk.Button(unit_form, text="Add unit", command=self.add_unit).grid(row=1, column=3, sticky="e", pady=(10, 0))
+
+        unit_actions = ttk.Frame(unit_form)
+        unit_actions.grid(row=2, column=0, columnspan=4, sticky="ew", pady=(10, 0))
+        ttk.Button(unit_actions, text="Load selected", command=self.load_selected_unit).grid(row=0, column=0, padx=(0, 8))
+        ttk.Button(unit_actions, text="Update selected", command=self.update_selected_unit).grid(row=0, column=1, padx=(0, 8))
+        ttk.Button(unit_actions, text="Toggle availability", command=self.toggle_selected_unit).grid(row=0, column=2)
+
         history_frame = ttk.Frame(right_bottom)
-        history_frame.grid(row=1, column=0, sticky="nsew", pady=(12, 0))
+        history_frame.grid(row=2, column=0, sticky="nsew", pady=(12, 0))
         history_frame.rowconfigure(0, weight=1)
         history_frame.columnconfigure(0, weight=1)
 
@@ -167,6 +204,22 @@ class Emergency911App:
         history_scroll.grid(row=0, column=1, sticky="ns")
         self.history_tree.configure(yscrollcommand=history_scroll.set)
 
+        events_frame = ttk.Labelframe(body, text="Event Queue", padding=12)
+        events_frame.grid(row=2, column=0, columnspan=2, sticky="nsew", pady=(12, 0))
+        events_frame.columnconfigure(0, weight=1)
+        events_frame.rowconfigure(0, weight=1)
+
+        self.events_list = tk.Listbox(events_frame, height=6)
+        self.events_list.grid(row=0, column=0, sticky="nsew")
+        events_scroll = ttk.Scrollbar(events_frame, orient="vertical", command=self.events_list.yview)
+        events_scroll.grid(row=0, column=1, sticky="ns")
+        self.events_list.configure(yscrollcommand=events_scroll.set)
+
+        events_actions = ttk.Frame(events_frame)
+        events_actions.grid(row=1, column=0, sticky="w", pady=(10, 0))
+        ttk.Button(events_actions, text="Pop event", command=self.pop_event).grid(row=0, column=0, padx=(0, 8))
+        ttk.Button(events_actions, text="Clear events", command=self.clear_events).grid(row=0, column=1)
+
         footer = ttk.Frame(main)
         footer.grid(row=2, column=0, sticky="ew", pady=(12, 0))
         footer.columnconfigure(0, weight=1)
@@ -180,6 +233,7 @@ class Emergency911App:
         self.location_cb["values"] = tuple(locations)
         self.distance_source_cb["values"] = tuple(locations)
         self.distance_target_cb["values"] = tuple(locations)
+        self.unit_location_cb["values"] = tuple(locations)
 
         if not self.location_var.get() and locations:
             self.location_var.set(locations[0])
@@ -187,10 +241,13 @@ class Emergency911App:
             self.distance_source_var.set(locations[0])
         if not self.distance_target_var.get() and len(locations) > 1:
             self.distance_target_var.set(locations[1])
+        if not self.unit_location_var.get() and locations:
+            self.unit_location_var.set(locations[0])
 
         self._render_units()
         self._render_calls()
         self._render_history()
+        self._render_events()
         self.set_status("Refreshed")
 
     def _render_units(self) -> None:
@@ -238,6 +295,153 @@ class Emergency911App:
                     record.get("note", ""),
                 ),
             )
+
+    def _render_events(self) -> None:
+        self.events_list.delete(0, "end")
+        events = emergency_service.get_events().data["events"]
+        for e in events[-200:]:
+            self.events_list.insert("end", e)
+
+    def _get_selected_call_id(self) -> int | None:
+        selection = self.calls_tree.selection()
+        if not selection:
+            return None
+        values = self.calls_tree.item(selection[0], "values")
+        if not values:
+            return None
+        try:
+            return int(values[0])
+        except Exception:
+            return None
+
+    def cancel_selected_call(self) -> None:
+        call_id = self._get_selected_call_id()
+        if call_id is None:
+            self.set_status("Select a call first")
+            return
+        try:
+            emergency_service.cancel_call(call_id=call_id)
+            self.refresh_all()
+            self.set_status(f"Canceled call {call_id}")
+        except EmergencyServiceError as exc:
+            self.set_status(str(exc))
+        except Exception:
+            self.set_status("An unexpected error occurred.")
+
+    def copy_selected_call(self) -> None:
+        call_id = self._get_selected_call_id()
+        if call_id is None:
+            self.set_status("Select a call first")
+            return
+        for call in emergency_service.list_pending_calls().data:
+            if call.get("call_id") == call_id:
+                text = str(call)
+                self.root.clipboard_clear()
+                self.root.clipboard_append(text)
+                self.set_status("Call copied to clipboard")
+                return
+        self.set_status("Call not found")
+
+    def _get_selected_unit_id(self) -> str | None:
+        selection = self.units_tree.selection()
+        if not selection:
+            return None
+        values = self.units_tree.item(selection[0], "values")
+        if not values:
+            return None
+        return str(values[0])
+
+    def load_selected_unit(self) -> None:
+        unit_id = self._get_selected_unit_id()
+        if unit_id is None:
+            self.set_status("Select a unit first")
+            return
+
+        for unit in emergency_service.list_units().data:
+            if str(unit.get("unit_id")) == unit_id:
+                self.unit_id_var.set(unit_id)
+                self.unit_type_var.set(str(unit.get("unit_type")))
+                self.unit_location_var.set(str(unit.get("location")))
+                self.unit_available_var.set(bool(unit.get("available")))
+                self.set_status("Loaded unit")
+                return
+
+        self.set_status("Unit not found")
+
+    def add_unit(self) -> None:
+        try:
+            unit_id = self.unit_id_var.get().strip()
+            result = emergency_service.add_unit(
+                unit_id=unit_id,
+                unit_type=self.unit_type_var.get(),
+                location=self.unit_location_var.get(),
+                available=self.unit_available_var.get(),
+            )
+            self.refresh_all()
+            self.unit_id_var.set("")
+            self.set_status(f"Added unit {result.data['unit_id']}")
+        except EmergencyServiceError as exc:
+            self.set_status(str(exc))
+        except Exception:
+            self.set_status("An unexpected error occurred.")
+
+    def update_selected_unit(self) -> None:
+        unit_id = self._get_selected_unit_id()
+        if unit_id is None:
+            self.set_status("Select a unit first")
+            return
+        try:
+            emergency_service.update_unit(
+                unit_id=unit_id,
+                location=self.unit_location_var.get(),
+                available=self.unit_available_var.get(),
+            )
+            self.refresh_all()
+            self.set_status(f"Updated unit {unit_id}")
+        except EmergencyServiceError as exc:
+            self.set_status(str(exc))
+        except Exception:
+            self.set_status("An unexpected error occurred.")
+
+    def toggle_selected_unit(self) -> None:
+        unit_id = self._get_selected_unit_id()
+        if unit_id is None:
+            self.set_status("Select a unit first")
+            return
+        try:
+            units = emergency_service.list_units().data
+            for unit in units:
+                if str(unit.get("unit_id")) == unit_id:
+                    new_value = not bool(unit.get("available"))
+                    emergency_service.update_unit(unit_id=unit_id, location=None, available=new_value)
+                    self.refresh_all()
+                    self.set_status(f"Unit {unit_id} available={new_value}")
+                    return
+            self.set_status("Unit not found")
+        except EmergencyServiceError as exc:
+            self.set_status(str(exc))
+        except Exception:
+            self.set_status("An unexpected error occurred.")
+
+    def pop_event(self) -> None:
+        try:
+            result = emergency_service.pop_event()
+            self.refresh_all()
+            self.set_status(f"Popped: {result.data['event']}")
+        except EmergencyServiceError as exc:
+            self.set_status(str(exc))
+        except Exception:
+            self.set_status("An unexpected error occurred.")
+
+    def clear_events(self) -> None:
+        try:
+            result = emergency_service.clear_events()
+            self.refresh_all()
+            self.set_status(f"Cleared {result.data['count']} events")
+        except EmergencyServiceError as exc:
+            self.set_status(str(exc))
+        except Exception:
+            self.set_status("An unexpected error occurred.")
 
     def create_call(self) -> None:
         try:

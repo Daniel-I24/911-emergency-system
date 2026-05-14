@@ -26,7 +26,7 @@ class ServiceResult:
     message: str
 
 
-UndoKind = Literal["create_call", "dispatch"]
+UndoKind = Literal["create_call", "dispatch", "cancel_call"]
 
 
 @dataclass(frozen=True)
@@ -36,6 +36,7 @@ class UndoAction:
     unit_id: Optional[str] = None
     unit_prev_location: Optional[str] = None
     unit_prev_available: Optional[bool] = None
+    call_snapshot: Optional[dict[str, Any]] = None
 
 
 class EmergencyService:
@@ -69,11 +70,25 @@ class EmergencyService:
         calls = [self._calls[cid] for cid in call_ids if cid in self._calls]
         return ServiceResult(success=True, data=calls, message="OK")
 
+    def list_all_calls(self) -> ServiceResult:
+        return ServiceResult(success=True, data=list(self._calls.values()), message="OK")
+
     def get_history(self) -> ServiceResult:
         return ServiceResult(success=True, data=self._history.get_all(), message="OK")
 
     def get_events(self) -> ServiceResult:
         return ServiceResult(success=True, data={"events": self._events.to_list()}, message="OK")
+
+    def pop_event(self) -> ServiceResult:
+        if self._events.is_empty():
+            raise EmergencyServiceError("No events")
+        return ServiceResult(success=True, data={"event": self._events.dequeue()}, message="OK")
+
+    def clear_events(self) -> ServiceResult:
+        cleared: list[str] = []
+        while not self._events.is_empty():
+            cleared.append(self._events.dequeue())
+        return ServiceResult(success=True, data={"count": len(cleared)}, message="OK")
 
     def get_distance(self, *, source: str, target: str) -> ServiceResult:
         if source not in self._graph.nodes() or target not in self._graph.nodes():
@@ -127,6 +142,19 @@ class EmergencyService:
         self._undo.push(UndoAction(kind="create_call", call_id=call_id))
 
         return ServiceResult(success=True, data=call, message="Call created")
+
+    def cancel_call(self, *, call_id: int) -> ServiceResult:
+        call = self._calls.get(call_id)
+        if call is None:
+            raise EmergencyServiceError("Call not found")
+        if call.get("status") != "pending":
+            raise EmergencyServiceError("Only pending calls can be canceled")
+
+        self._pending.remove(call_id=call_id)
+        removed = self._calls.pop(call_id)
+        self._events.enqueue(f"call_canceled:{call_id}")
+        self._undo.push(UndoAction(kind="cancel_call", call_id=call_id, call_snapshot=removed))
+        return ServiceResult(success=True, data=removed, message="Call canceled")
 
     def add_unit(self, *, unit_id: str, unit_type: UnitType, location: str, available: bool) -> ServiceResult:
         unit_id = unit_id.strip()
@@ -275,6 +303,14 @@ class EmergencyService:
             self._history.append(data=undo_record)
             self._events.enqueue(f"undo_dispatch:{action.call_id}:{action.unit_id}")
             return ServiceResult(success=True, data={"call": call, "unit": unit}, message="Undone")
+
+        if action.kind == "cancel_call":
+            if action.call_snapshot is None:
+                raise EmergencyServiceError("Nothing to undo")
+            self._calls[action.call_id] = action.call_snapshot
+            self._pending.enqueue(call_id=action.call_id, rank=priority_rank(action.call_snapshot["priority"]))
+            self._events.enqueue(f"undo_cancel_call:{action.call_id}")
+            return ServiceResult(success=True, data=action.call_snapshot, message="Undone")
 
         raise EmergencyServiceError("Unsupported undo")
 
