@@ -35,6 +35,15 @@ Python 3
 Tkinter – Graphical User Interface
 Custom Data Structures (no external heavy libraries)
 
+## Complexity Analysis
+| Operation | Data Structure | Time Complexity |
+|-----------|---------------|-----------------|
+| Add emergency | Priority Queue | O(log n) |
+| Find nearest unit | Dijkstra | O((V + E) log V) |
+| Undo action | Stack | O(1) |
+| Log event | Queue | O(1) |
+| Dispatch history | Singly Linked List | O(n) |
+| Unit rotation | Circular Array | O(1) |
 
 ## Structure
 
