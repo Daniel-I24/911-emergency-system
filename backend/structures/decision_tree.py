@@ -78,17 +78,7 @@ DispatchPriority = Literal["High", "Medium", "Low"]
 
 def priority_rank(priority: DispatchPriority) -> int:
     """
-    Convierte un nivel de prioridad de despacho (Alto, Medio, Bajo) en un rango numérico
-    utilizado para el ordenamiento en la cola de prioridad.
-    
-    Args:
-        priority (DispatchPriority): El nivel de prioridad textual.
-        
-    Returns:
-        int: Un valor numérico donde 0 es la mayor prioridad y 2 es la menor.
-        
-    Raises:
-        ValueError: Si el nivel de prioridad no es válido.
+    Convierte una prioridad de despacho a su rango numérico (0=Alta, 1=Media, 2=Baja).
     """
     mapping = {"High": 0, "Medium": 1, "Low": 2}
     if priority not in mapping:
