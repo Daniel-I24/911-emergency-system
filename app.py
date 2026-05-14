@@ -7,7 +7,18 @@ from backend.services.emergency_service import EmergencyServiceError, emergency_
 
 
 class Emergency911App:
+    """
+    Clase principal de la aplicación para la interfaz de usuario del Sistema de Emergencias 911.
+    Proporciona una interfaz gráfica para interactuar con los servicios de emergencia del backend,
+    gestionar llamadas, unidades, historial de despachos y cálculo de rutas.
+    """
     def __init__(self, root: tk.Tk) -> None:
+        """
+        Inicializa la ventana principal de la aplicación y sus variables.
+        
+        Args:
+            root (tk.Tk): La ventana raíz de tkinter.
+        """
         self.root = root
         self.root.title("911 Emergency System")
         self.root.geometry("1180x740")
@@ -31,6 +42,11 @@ class Emergency911App:
         self.refresh_all()
 
     def _build_layout(self) -> None:
+        """
+        Construye el diseño principal de la aplicación, incluyendo encabezados,
+        marcos para la creación de llamadas de emergencia, llamadas pendientes, gestión de unidades,
+        historial y cola de eventos.
+        """
         self.root.columnconfigure(0, weight=1)
         self.root.rowconfigure(0, weight=1)
 
@@ -226,9 +242,19 @@ class Emergency911App:
         ttk.Label(footer, textvariable=self.status_var).grid(row=0, column=0, sticky="w")
 
     def set_status(self, message: str) -> None:
+        """
+        Actualiza el mensaje de la barra de estado en la parte inferior de la ventana.
+        
+        Args:
+            message (str): El mensaje de estado a mostrar.
+        """
         self.status_var.set(message)
 
     def refresh_all(self) -> None:
+        """
+        Actualiza todos los componentes de la interfaz obteniendo los últimos datos del backend.
+        Actualiza listas desplegables, árboles de unidades, llamadas, historial y eventos.
+        """
         locations = emergency_service.list_locations().data["locations"]
         self.location_cb["values"] = tuple(locations)
         self.distance_source_cb["values"] = tuple(locations)
@@ -251,6 +277,9 @@ class Emergency911App:
         self.set_status("Refreshed")
 
     def _render_units(self) -> None:
+        """
+        Obtiene la lista actual de unidades desde el backend y actualiza la vista de árbol de unidades.
+        """
         for item in self.units_tree.get_children():
             self.units_tree.delete(item)
         for unit in emergency_service.list_units().data:
@@ -261,6 +290,9 @@ class Emergency911App:
             )
 
     def _render_calls(self) -> None:
+        """
+        Obtiene la lista actual de llamadas de emergencia pendientes y actualiza la vista de árbol de llamadas.
+        """
         for item in self.calls_tree.get_children():
             self.calls_tree.delete(item)
         for call in emergency_service.list_pending_calls().data:
@@ -278,6 +310,10 @@ class Emergency911App:
             )
 
     def _render_history(self) -> None:
+        """
+        Obtiene el historial de despachos y actualiza la vista de árbol del historial.
+        Muestra hasta los últimos 200 registros.
+        """
         for item in self.history_tree.get_children():
             self.history_tree.delete(item)
         history = emergency_service.get_history().data
@@ -297,12 +333,22 @@ class Emergency911App:
             )
 
     def _render_events(self) -> None:
+        """
+        Obtiene los últimos eventos del sistema y actualiza la lista de eventos.
+        Muestra hasta los últimos 200 eventos.
+        """
         self.events_list.delete(0, "end")
         events = emergency_service.get_events().data["events"]
         for e in events[-200:]:
             self.events_list.insert("end", e)
 
     def _get_selected_call_id(self) -> int | None:
+        """
+        Recupera el ID de la llamada actualmente seleccionada en la vista de árbol de llamadas.
+        
+        Returns:
+            int | None: El ID de la llamada seleccionada, o None si no hay ninguna llamada seleccionada.
+        """
         selection = self.calls_tree.selection()
         if not selection:
             return None
@@ -315,6 +361,10 @@ class Emergency911App:
             return None
 
     def cancel_selected_call(self) -> None:
+        """
+        Cancela la llamada de emergencia actualmente seleccionada en la interfaz de usuario.
+        Muestra un mensaje de error si la operación falla.
+        """
         call_id = self._get_selected_call_id()
         if call_id is None:
             self.set_status("Select a call first")
@@ -329,6 +379,9 @@ class Emergency911App:
             self.set_status("An unexpected error occurred.")
 
     def copy_selected_call(self) -> None:
+        """
+        Copia los detalles de la llamada de emergencia actualmente seleccionada al portapapeles.
+        """
         call_id = self._get_selected_call_id()
         if call_id is None:
             self.set_status("Select a call first")
@@ -343,6 +396,12 @@ class Emergency911App:
         self.set_status("Call not found")
 
     def _get_selected_unit_id(self) -> str | None:
+        """
+        Recupera el ID de la unidad actualmente seleccionada en la vista de árbol de unidades.
+        
+        Returns:
+            str | None: El ID de la unidad seleccionada, o None si no hay ninguna unidad seleccionada.
+        """
         selection = self.units_tree.selection()
         if not selection:
             return None
@@ -352,6 +411,10 @@ class Emergency911App:
         return str(values[0])
 
     def load_selected_unit(self) -> None:
+        """
+        Carga los detalles de la unidad seleccionada desde la vista de árbol de unidades
+        en el formulario de gestión de unidades para su edición.
+        """
         unit_id = self._get_selected_unit_id()
         if unit_id is None:
             self.set_status("Select a unit first")
@@ -369,6 +432,10 @@ class Emergency911App:
         self.set_status("Unit not found")
 
     def add_unit(self) -> None:
+        """
+        Añade una nueva unidad de emergencia utilizando los detalles proporcionados en el formulario de gestión.
+        Muestra un mensaje de error si la operación falla.
+        """
         try:
             unit_id = self.unit_id_var.get().strip()
             result = emergency_service.add_unit(
@@ -386,6 +453,10 @@ class Emergency911App:
             self.set_status("An unexpected error occurred.")
 
     def update_selected_unit(self) -> None:
+        """
+        Actualiza la unidad seleccionada actualmente con la nueva ubicación y disponibilidad
+        desde el formulario de gestión de unidades.
+        """
         unit_id = self._get_selected_unit_id()
         if unit_id is None:
             self.set_status("Select a unit first")
@@ -404,6 +475,9 @@ class Emergency911App:
             self.set_status("An unexpected error occurred.")
 
     def toggle_selected_unit(self) -> None:
+        """
+        Alterna el estado de disponibilidad (disponible/no disponible) de la unidad seleccionada.
+        """
         unit_id = self._get_selected_unit_id()
         if unit_id is None:
             self.set_status("Select a unit first")
@@ -424,6 +498,9 @@ class Emergency911App:
             self.set_status("An unexpected error occurred.")
 
     def pop_event(self) -> None:
+        """
+        Saca el siguiente evento de la cola de eventos del backend y muestra un mensaje de estado.
+        """
         try:
             result = emergency_service.pop_event()
             self.refresh_all()
@@ -434,6 +511,9 @@ class Emergency911App:
             self.set_status("An unexpected error occurred.")
 
     def clear_events(self) -> None:
+        """
+        Limpia todos los eventos de la cola de eventos del backend.
+        """
         try:
             result = emergency_service.clear_events()
             self.refresh_all()
@@ -444,6 +524,9 @@ class Emergency911App:
             self.set_status("An unexpected error occurred.")
 
     def create_call(self) -> None:
+        """
+        Crea una nueva llamada de emergencia utilizando los detalles proporcionados en el formulario 'Create Emergency Call'.
+        """
         try:
             result = emergency_service.create_call(
                 incident_type=self.incident_var.get(),
@@ -460,6 +543,10 @@ class Emergency911App:
             self.set_status("An unexpected error occurred.")
 
     def dispatch_next(self) -> None:
+        """
+        Despacha la siguiente llamada de emergencia de mayor prioridad a una unidad disponible.
+        Muestra un mensaje de éxito o de error basado en la disponibilidad.
+        """
         try:
             result = emergency_service.dispatch_next()
             self.refresh_all()
@@ -475,6 +562,9 @@ class Emergency911App:
             self.set_status("An unexpected error occurred.")
 
     def undo_last(self) -> None:
+        """
+        Deshace la última acción de despacho, restaurando la llamada a pendiente y liberando la unidad.
+        """
         try:
             emergency_service.undo_last()
             self.refresh_all()
@@ -485,6 +575,10 @@ class Emergency911App:
             self.set_status("An unexpected error occurred.")
 
     def compute_distance(self) -> None:
+        """
+        Calcula y muestra la ruta más corta entre la ubicación de origen y destino 
+        seleccionadas utilizando el algoritmo de Dijkstra desde el backend.
+        """
         try:
             result = emergency_service.get_distance(
                 source=self.distance_source_var.get(),
@@ -500,6 +594,10 @@ class Emergency911App:
             self.set_status("An unexpected error occurred.")
 
     def show_guide(self) -> None:
+        """
+        Abre una nueva ventana que muestra una guía para el operador basada en el tipo de incidente seleccionado.
+        Incluye un script para el operador y los tipos de unidades recomendadas.
+        """
         try:
             result = emergency_service.get_operator_guide(incident_type=self.incident_var.get())
             script = result.data["operator_script"]
@@ -526,6 +624,10 @@ class Emergency911App:
 
 
 def main() -> None:
+    """
+    Punto de entrada principal de la aplicación. Inicializa la raíz de Tkinter,
+    aplica los estilos y comienza el bucle de eventos principal.
+    """
     root = tk.Tk()
     try:
         ttk.Style().theme_use("clam")
