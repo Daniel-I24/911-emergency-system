@@ -68,3 +68,25 @@ emergency-system/
   README.md
 ```
 
+## Why These Data Structures?
+
+### Priority Queue — handling calls by severity
+Emergency calls are not equal. A cardiac arrest must be dispatched before a noise complaint. A priority queue (backed by a min-heap) keeps the highest-severity call at the top at all times, so the dispatcher always processes the most critical incident next without scanning the entire list. Inserting or extracting a call costs O(log n), which is fast even under high call volume.
+
+### Dijkstra's Algorithm on a Graph — finding the nearest unit
+The city is modeled as a weighted graph where nodes are locations and edges are roads with travel distances. When a call comes in, Dijkstra computes the shortest path from every available unit to the incident site, so the closest one gets dispatched. This solves the real-world constraint that "nearest" means road distance, not a straight line on a map.
+
+### Decision Tree — guiding the operator
+Different emergencies require different questions (Is the patient breathing? Is the fire contained?). A decision tree encodes this branching logic so the operator is walked through the correct protocol for each incident type. It removes guesswork under pressure and ensures no critical step is skipped.
+
+### Singly Linked List — dispatch history
+Every dispatch is appended to a linked list, forming a chronological log. New records are added in O(1) at the head, and the full history can be traversed in O(n). A linked list fits here because history only needs sequential access — random access by index is never required.
+
+### Circular Array — fair unit rotation
+When two units are equally close, the system needs a tie-breaker that prevents one unit from being overloaded. A circular array cycles through available units so selection wraps around evenly. Advancing the pointer is O(1) and guarantees every unit gets a turn before any unit repeats.
+
+### Stack — undo last action
+Operators make mistakes. A stack lets the system reverse the most recent dispatch action in O(1) by simply popping the top entry. The LIFO nature of a stack maps directly onto "undo the last thing done," making it the natural fit for this feature.
+
+### Queue — real-time event log
+System events (call received, unit dispatched, call resolved) are appended to a queue as they happen and consumed in order for display. The FIFO guarantee means events are shown in the exact sequence they occurred. Both enqueue and dequeue are O(1), so logging never slows down the rest of the system.
